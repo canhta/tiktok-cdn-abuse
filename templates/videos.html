@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}Videos - Video Hosting CDN{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="page-title">🎞️ Video Library</h1>
+            <p class="page-subtitle">Manage and play your uploaded videos</p>
+        </div>
+        <a href="/upload" class="btn btn-primary">
+            📤 Upload New Video
+        </a>
+    </div>
+</div>
+
+<!-- Search and Filter -->
+<div class="card mb-6">
+    <div class="card-content">
+        <div class="flex flex-col md:flex-row gap-4">
+            <div class="flex-1">
+                <input type="text" id="searchInput" placeholder="Search videos..." class="form-input">
+            </div>
+            <div class="flex gap-2">
+                <button onclick="app.loadVideos()" class="btn btn-secondary">
+                    🔄 Refresh
+                </button>
+                <button onclick="toggleView()" class="btn btn-secondary" id="viewToggle">
+                    📋 List View
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Video Stats -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="card">
+        <div class="card-content text-center">
+            <div class="text-2xl font-bold text-primary" id="totalVideosCount">0</div>
+            <div class="text-sm text-secondary">Total Videos</div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-content text-center">
+            <div class="text-2xl font-bold text-success" id="totalSizeCount">0 MB</div>
+            <div class="text-sm text-secondary">Total Size</div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-content text-center">
+            <div class="text-2xl font-bold text-warning" id="fakeImagesCount">0</div>
+            <div class="text-sm text-secondary">Fake Images</div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-content text-center">
+            <div class="text-2xl font-bold text-secondary" id="cdnStatusBadge">❌</div>
+            <div class="text-sm text-secondary">CDN Status</div>
+        </div>
+    </div>
+</div>
+
+<!-- Video List -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">📚 Your Videos</h3>
+        <p class="card-description">Click on a video to play or manage</p>
+    </div>
+    <div class="card-content">
+        <div id="videoList" class="space-y-4">
+            <div class="text-center text-secondary">Loading videos...</div>
+        </div>
+        
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-8" style="display: none;">
+            <div class="text-6xl mb-4">🎬</div>
+            <h3 class="text-xl font-semibold mb-2">No videos uploaded yet</h3>
+            <p class="text-secondary mb-4">Upload your first video to get started</p>
+            <a href="/upload" class="btn btn-primary">📤 Upload Video</a>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Actions Modal -->
+<div id="bulkModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Bulk Actions</h3>
+            <button onclick="closeBulkModal()" class="btn btn-secondary btn-sm">✕</button>
+        </div>
+        <div class="modal-body">
+            <p>Select an action for the selected videos:</p>
+            <div class="flex gap-2 mt-4">
+                <button onclick="bulkDelete()" class="btn btn-error">🗑️ Delete Selected</button>
+                <button onclick="bulkExport()" class="btn btn-secondary">📋 Export URLs</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentView = 'grid'; // 'grid' or 'list'
+let selectedVideos = new Set();
+
+function toggleView() {
+    currentView = currentView === 'grid' ? 'list' : 'grid';
+    const toggleBtn = document.getElementById('viewToggle');
+    toggleBtn.textContent = currentView === 'grid' ? '📋 List View' : '🔲 Grid View';
+    app.loadVideos();
+}
+
+function toggleVideoSelection(videoId) {
+    if (selectedVideos.has(videoId)) {
+        selectedVideos.delete(videoId);
+    } else {
+        selectedVideos.add(videoId);
+    }
+    updateSelectionUI();
+}
+
+function updateSelectionUI() {
+    const checkboxes = document.querySelectorAll('.video-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectedVideos.has(checkbox.dataset.videoId);
+    });
+    
+    // Show/hide bulk actions
+    const bulkActions = document.getElementById('bulkActions');
+    if (bulkActions) {
+        bulkActions.style.display = selectedVideos.size > 0 ? 'block' : 'none';
+    }
+}
+
+function selectAllVideos() {
+    const checkboxes = document.querySelectorAll('.video-checkbox');
+    checkboxes.forEach(checkbox => {
+        selectedVideos.add(checkbox.dataset.videoId);
+    });
+    updateSelectionUI();
+}
+
+function clearSelection() {
+    selectedVideos.clear();
+    updateSelectionUI();
+}
+
+function bulkDelete() {
+    if (selectedVideos.size === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete ${selectedVideos.size} videos?`)) {
+        return;
+    }
+    
+    Promise.all([...selectedVideos].map(videoId => 
+        fetch(`/video/${videoId}`, { method: 'DELETE' })
+    )).then(() => {
+        app.showToast(`Deleted ${selectedVideos.size} videos`);
+        selectedVideos.clear();
+        app.loadVideos();
+        closeBulkModal();
+    }).catch(error => {
+        app.showToast(`Failed to delete videos: ${error.message}`, 'error');
+    });
+}
+
+function bulkExport() {
+    if (selectedVideos.size === 0) return;
+    
+    const urls = [...selectedVideos].map(videoId => 
+        `${window.location.origin}/playlist/${videoId}`
+    ).join('\n');
+    
+    navigator.clipboard.writeText(urls).then(() => {
+        app.showToast(`Copied ${selectedVideos.size} playlist URLs to clipboard`);
+        closeBulkModal();
+    }).catch(error => {
+        app.showToast('Failed to copy URLs', 'error');
+    });
+}
+
+function closeBulkModal() {
+    document.getElementById('bulkModal').style.display = 'none';
+}
+
+// Enhanced video item creation for different views
+window.createVideoItemEnhanced = function(video, view = 'grid') {
+    if (view === 'list') {
+        return `
+            <div class="video-item">
+                <input type="checkbox" class="video-checkbox" data-video-id="${video.video_id}" 
+                       onchange="toggleVideoSelection('${video.video_id}')">
+                <div class="video-thumbnail">🎬</div>
+                <div class="video-info">
+                    <div class="video-title">${video.video_id}</div>
+                    <div class="video-meta">
+                        Playlist: <a href="${video.playlist_url}" target="_blank">View M3U8</a>
+                    </div>
+                </div>
+                <div class="video-actions">
+                    <button class="btn btn-primary btn-sm" onclick="app.playVideo('${video.video_id}')">
+                        ▶️ Play
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="app.copyPlaylistUrl('${video.playlist_url}')">
+                        📋 Copy
+                    </button>
+                    <button class="btn btn-error btn-sm" onclick="app.deleteVideo('${video.video_id}')">
+                        🗑️
+                    </button>
+                </div>
+            </div>
+        `;
+    } else {
+        return `
+            <div class="card">
+                <div class="card-content">
+                    <div class="text-center">
+                        <div class="text-4xl mb-2">🎬</div>
+                        <h4 class="font-semibold mb-2">${video.video_id}</h4>
+                        <div class="flex gap-2 justify-center">
+                            <button class="btn btn-primary btn-sm" onclick="app.playVideo('${video.video_id}')">
+                                ▶️ Play
+                            </button>
+                            <button class="btn btn-secondary btn-sm" onclick="app.copyPlaylistUrl('${video.playlist_url}')">
+                                📋
+                            </button>
+                            <button class="btn btn-error btn-sm" onclick="app.deleteVideo('${video.video_id}')">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+};
+
+// Override the createVideoItem function
+window.app.createVideoItem = function(video) {
+    return createVideoItemEnhanced(video, currentView);
+};
+
+// Enhanced loadVideos function
+window.app.loadVideosEnhanced = async function() {
+    const videoList = document.getElementById('videoList');
+    const emptyState = document.getElementById('emptyState');
+    
+    try {
+        const response = await fetch('/videos');
+        const data = await response.json();
+        
+        if (data.videos && data.videos.length > 0) {
+            const containerClass = currentView === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4';
+            videoList.className = containerClass;
+            videoList.innerHTML = data.videos.map(video => this.createVideoItem(video)).join('');
+            emptyState.style.display = 'none';
+            
+            // Update stats
+            document.getElementById('totalVideosCount').textContent = data.videos.length;
+        } else {
+            videoList.innerHTML = '';
+            emptyState.style.display = 'block';
+            document.getElementById('totalVideosCount').textContent = '0';
+        }
+    } catch (error) {
+        console.error('Failed to load videos:', error);
+        videoList.innerHTML = '<div class="text-center text-error">Failed to load videos</div>';
+        emptyState.style.display = 'none';
+    }
+};
+
+// Override the original loadVideos
+window.app.loadVideos = window.app.loadVideosEnhanced;
+
+async function loadStats() {
+    try {
+        const [videosResponse, cdnResponse] = await Promise.all([
+            fetch('/videos'),
+            fetch('/cdn-status')
+        ]);
+        
+        const videosData = await videosResponse.json();
+        const cdnData = await cdnResponse.json();
+        
+        document.getElementById('fakeImagesCount').textContent = cdnData.fake_images_cached || '0';
+        document.getElementById('cdnStatusBadge').textContent = cdnData.cdn_configured ? '✅' : '❌';
+        
+    } catch (error) {
+        console.error('Failed to load stats:', error);
+    }
+}
+
+// Search functionality
+document.getElementById('searchInput').addEventListener('input', (e) => {
+    const searchTerm = e.target.value.toLowerCase();
+    const videoItems = document.querySelectorAll('.video-item, .card');
+    
+    videoItems.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(searchTerm) ? 'block' : 'none';
+    });
+});
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', () => {
+    loadStats();
+});
+</script>
+
+<style>
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--surface);
+    border-radius: 0.5rem;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90%;
+    overflow-y: auto;
+}
+
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.video-checkbox {
+    margin-right: 1rem;
+}
+</style>
+{% endblock %}

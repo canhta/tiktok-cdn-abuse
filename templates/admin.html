@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel - Video Hosting CDN{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="page-title">⚙️ Admin Panel</h1>
+    <p class="page-subtitle">Manage CDN uploads, system configuration, and monitoring</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- CDN Management -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📤 CDN Management</h3>
+            <p class="card-description">Upload fake images to CDN for playlist obfuscation</p>
+        </div>
+        <div class="card-content">
+            <form id="cdnForm">
+                <div class="form-group">
+                    <label for="imageCount" class="form-label">Number of Images</label>
+                    <input type="number" id="imageCount" name="count" value="10" min="1" max="50" class="form-input">
+                    <small class="text-secondary">Upload 1x1 transparent PNGs to CDN</small>
+                </div>
+                
+                <button type="submit" class="btn btn-primary w-full">
+                    📤 Upload Fake Images
+                </button>
+            </form>
+            
+            <div id="cdnStatus" class="status" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- System Status -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📊 System Status</h3>
+            <p class="card-description">Current system information and statistics</p>
+        </div>
+        <div class="card-content">
+            <div class="space-y-3">
+                <div class="flex justify-between">
+                    <span>CDN Configured:</span>
+                    <span id="cdnConfigured" class="font-semibold">Loading...</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Fake Images Cached:</span>
+                    <span id="fakeImagesCount" class="font-semibold">Loading...</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Total Videos:</span>
+                    <span id="totalVideos" class="font-semibold">Loading...</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Storage Used:</span>
+                    <span id="storageUsed" class="font-semibold">Loading...</span>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <button onclick="refreshStatus()" class="btn btn-secondary w-full">
+                    🔄 Refresh Status
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Configuration -->
+<div class="card mt-6">
+    <div class="card-header">
+        <h3 class="card-title">🔧 Configuration</h3>
+        <p class="card-description">CDN and system configuration settings</p>
+    </div>
+    <div class="card-content">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h4 class="font-semibold mb-3">CDN Settings</h4>
+                <div class="space-y-3 text-sm">
+                    <div>
+                        <strong>Upload URL:</strong><br>
+                        <code class="bg-gray-100 px-2 py-1 rounded text-xs">
+                            https://ads-cdn-upload.domain.com/api/v2/i18n/material/image/upload/
+                        </code>
+                    </div>
+                    <div>
+                        <strong>Session Status:</strong><br>
+                        <span id="sessionStatus">Checking...</span>
+                    </div>
+                    <div>
+                        <strong>Rate Limit:</strong><br>
+                        5 requests per second
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <h4 class="font-semibold mb-3">System Settings</h4>
+                <div class="space-y-3 text-sm">
+                    <div>
+                        <strong>Max File Size:</strong><br>
+                        500 MB per video
+                    </div>
+                    <div>
+                        <strong>Supported Formats:</strong><br>
+                        MP4, AVI, MOV, MKV, WebM
+                    </div>
+                    <div>
+                        <strong>Segment Duration:</strong><br>
+                        10 seconds (configurable)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Tools -->
+<div class="card mt-6">
+    <div class="card-header">
+        <h3 class="card-title">🛠️ System Tools</h3>
+        <p class="card-description">Administrative tools and utilities</p>
+    </div>
+    <div class="card-content">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button onclick="cleanupOrphanedFiles()" class="btn btn-warning">
+                🧹 Cleanup Orphaned Files
+            </button>
+            <button onclick="validateCDNImages()" class="btn btn-secondary">
+                ✅ Validate CDN Images
+            </button>
+            <button onclick="exportSystemInfo()" class="btn btn-secondary">
+                📋 Export System Info
+            </button>
+        </div>
+        
+        <div id="toolsStatus" class="status mt-4" style="display: none;"></div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="card mt-6">
+    <div class="card-header">
+        <h3 class="card-title">📈 Recent Activity</h3>
+        <p class="card-description">Latest uploads and system events</p>
+    </div>
+    <div class="card-content">
+        <div id="recentActivity">
+            <div class="text-center text-secondary">Loading recent activity...</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function refreshStatus() {
+    try {
+        // Load CDN status
+        const cdnResponse = await fetch('/cdn-status');
+        const cdnData = await cdnResponse.json();
+        
+        document.getElementById('cdnConfigured').textContent = cdnData.cdn_configured ? '✅ Yes' : '❌ No';
+        document.getElementById('fakeImagesCount').textContent = cdnData.fake_images_cached || '0';
+        document.getElementById('sessionStatus').textContent = cdnData.session_available ? '✅ Active' : '❌ Not configured';
+        
+        // Load video count
+        const videosResponse = await fetch('/videos');
+        const videosData = await videosResponse.json();
+        document.getElementById('totalVideos').textContent = videosData.videos ? videosData.videos.length : '0';
+        
+        // Estimate storage (simplified)
+        const videoCount = videosData.videos ? videosData.videos.length : 0;
+        const estimatedStorage = videoCount * 50; // Rough estimate: 50MB per video
+        document.getElementById('storageUsed').textContent = `~${estimatedStorage} MB`;
+        
+    } catch (error) {
+        console.error('Failed to refresh status:', error);
+        showStatus('toolsStatus', 'error', 'Failed to refresh status');
+    }
+}
+
+async function cleanupOrphanedFiles() {
+    const toolsStatus = document.getElementById('toolsStatus');
+    showStatus(toolsStatus, 'info', 'Cleaning up orphaned files...');
+    
+    try {
+        // This would call a cleanup endpoint if implemented
+        showStatus(toolsStatus, 'success', '✅ Cleanup completed (feature not yet implemented)');
+    } catch (error) {
+        showStatus(toolsStatus, 'error', `❌ Cleanup failed: ${error.message}`);
+    }
+}
+
+async function validateCDNImages() {
+    const toolsStatus = document.getElementById('toolsStatus');
+    showStatus(toolsStatus, 'info', 'Validating CDN images...');
+    
+    try {
+        const response = await fetch('/cdn-status');
+        const data = await response.json();
+        
+        if (data.fake_images_cached > 0) {
+            showStatus(toolsStatus, 'success', `✅ Found ${data.fake_images_cached} cached images`);
+        } else {
+            showStatus(toolsStatus, 'warning', '⚠️ No cached images found');
+        }
+    } catch (error) {
+        showStatus(toolsStatus, 'error', `❌ Validation failed: ${error.message}`);
+    }
+}
+
+async function exportSystemInfo() {
+    const toolsStatus = document.getElementById('toolsStatus');
+    
+    try {
+        const [cdnResponse, videosResponse] = await Promise.all([
+            fetch('/cdn-status'),
+            fetch('/videos')
+        ]);
+        
+        const cdnData = await cdnResponse.json();
+        const videosData = await videosResponse.json();
+        
+        const systemInfo = {
+            timestamp: new Date().toISOString(),
+            cdn: cdnData,
+            videos: {
+                count: videosData.videos ? videosData.videos.length : 0,
+                list: videosData.videos || []
+            },
+            system: {
+                version: '1.0.0',
+                features: ['HLS Conversion', 'Playlist Obfuscation', 'CDN Integration']
+            }
+        };
+        
+        const blob = new Blob([JSON.stringify(systemInfo, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `system-info-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showStatus(toolsStatus, 'success', '✅ System info exported');
+    } catch (error) {
+        showStatus(toolsStatus, 'error', `❌ Export failed: ${error.message}`);
+    }
+}
+
+async function loadRecentActivity() {
+    try {
+        const response = await fetch('/videos');
+        const data = await response.json();
+        const recentActivity = document.getElementById('recentActivity');
+        
+        if (data.videos && data.videos.length > 0) {
+            const recent = data.videos.slice(0, 5); // Show last 5 videos
+            recentActivity.innerHTML = recent.map(video => `
+                <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                    <div>
+                        <div class="font-medium">${video.video_id}</div>
+                        <div class="text-sm text-secondary">Video uploaded</div>
+                    </div>
+                    <div class="text-sm text-secondary">
+                        <a href="/player/${video.video_id}" class="text-primary">View</a>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            recentActivity.innerHTML = '<div class="text-center text-secondary">No recent activity</div>';
+        }
+    } catch (error) {
+        console.error('Failed to load recent activity:', error);
+        recentActivity.innerHTML = '<div class="text-center text-error">Failed to load activity</div>';
+    }
+}
+
+function showStatus(element, type, message) {
+    element.className = `status status-${type}`;
+    element.textContent = message;
+    element.style.display = 'block';
+    
+    // Auto-hide after 5 seconds for non-error messages
+    if (type !== 'error') {
+        setTimeout(() => {
+            element.style.display = 'none';
+        }, 5000);
+    }
+}
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', () => {
+    refreshStatus();
+    loadRecentActivity();
+});
+</script>
+{% endblock %}

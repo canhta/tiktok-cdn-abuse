@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Video - Video Hosting CDN{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="page-title">📤 Upload Video</h1>
+    <p class="page-subtitle">Convert your videos to HLS format with playlist obfuscation</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Upload Form -->
+    <div class="lg:col-span-2">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Video Upload</h3>
+                <p class="card-description">Drag and drop your video file or click to browse</p>
+            </div>
+            <div class="card-content">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <!-- Drag & Drop Area -->
+                    <div id="uploadArea" class="upload-area mb-4">
+                        <div class="upload-icon">🎬</div>
+                        <div class="upload-text">Drop video file here or click to browse</div>
+                        <div class="upload-subtext">Supports MP4, AVI, MOV, MKV, WebM (max 500MB)</div>
+                        <input type="file" id="videoFile" name="video" accept="video/*" style="display: none;" required>
+                    </div>
+
+                    <!-- Configuration Options -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="form-group">
+                            <label for="injectionRatio" class="form-label">Injection Ratio</label>
+                            <select id="injectionRatio" name="injection_ratio" class="form-select">
+                                <option value="0.3">Low (30%)</option>
+                                <option value="0.5" selected>Medium (50%)</option>
+                                <option value="0.7">High (70%)</option>
+                                <option value="1.0">Maximum (100%)</option>
+                            </select>
+                            <small class="text-secondary">Percentage of fake image segments to inject</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="segmentDuration" class="form-label">Segment Duration</label>
+                            <select id="segmentDuration" name="segment_duration" class="form-select">
+                                <option value="5">5 seconds</option>
+                                <option value="10" selected>10 seconds</option>
+                                <option value="15">15 seconds</option>
+                                <option value="30">30 seconds</option>
+                            </select>
+                            <small class="text-secondary">Duration of each video segment</small>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div id="uploadProgress" class="progress" style="display: none;">
+                        <div class="progress-bar"></div>
+                    </div>
+
+                    <!-- Status Message -->
+                    <div id="uploadStatus" class="status" style="display: none;"></div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary btn-lg w-full">
+                        📤 Upload & Process Video
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Panel -->
+    <div class="lg:col-span-1">
+        <div class="card mb-6">
+            <div class="card-header">
+                <h3 class="card-title">📋 Upload Info</h3>
+            </div>
+            <div class="card-content">
+                <div class="space-y-3 text-sm">
+                    <div>
+                        <strong>Supported Formats:</strong><br>
+                        MP4, AVI, MOV, MKV, WebM
+                    </div>
+                    <div>
+                        <strong>Maximum File Size:</strong><br>
+                        500 MB per video
+                    </div>
+                    <div>
+                        <strong>Processing Time:</strong><br>
+                        ~1-2 minutes per 100MB
+                    </div>
+                    <div>
+                        <strong>Output Format:</strong><br>
+                        HLS (.m3u8 + .ts segments)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-6">
+            <div class="card-header">
+                <h3 class="card-title">🎭 Obfuscation Settings</h3>
+            </div>
+            <div class="card-content">
+                <div class="space-y-3 text-sm">
+                    <div>
+                        <strong>Injection Ratio:</strong><br>
+                        Controls how many fake image segments are mixed into the playlist
+                    </div>
+                    <div>
+                        <strong>Fake Images:</strong><br>
+                        1x1 transparent PNGs hosted on CDN with 0.1s duration
+                    </div>
+                    <div>
+                        <strong>Player Compatibility:</strong><br>
+                        HLS players ignore fake segments automatically
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">🔧 CDN Status</h3>
+            </div>
+            <div class="card-content">
+                <div id="cdnStatusInfo" class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span>CDN Configured:</span>
+                        <span id="cdnConfigured">Loading...</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Fake Images:</span>
+                        <span id="fakeImageCount">Loading...</span>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <a href="/admin" class="btn btn-secondary btn-sm w-full">Configure CDN</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Uploads -->
+<div class="card mt-8">
+    <div class="card-header">
+        <h3 class="card-title">📚 Recent Uploads</h3>
+        <p class="card-description">Your recently uploaded videos</p>
+    </div>
+    <div class="card-content">
+        <div id="recentVideos">
+            <div class="text-center text-secondary">Loading recent videos...</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadCDNStatus() {
+    try {
+        const response = await fetch('/cdn-status');
+        const data = await response.json();
+        
+        document.getElementById('cdnConfigured').textContent = data.cdn_configured ? '✅ Yes' : '❌ No';
+        document.getElementById('fakeImageCount').textContent = data.fake_images_cached || '0';
+    } catch (error) {
+        console.error('Failed to load CDN status:', error);
+        document.getElementById('cdnConfigured').textContent = 'Error';
+        document.getElementById('fakeImageCount').textContent = 'Error';
+    }
+}
+
+async function loadRecentVideos() {
+    try {
+        const response = await fetch('/videos');
+        const data = await response.json();
+        const recentVideos = document.getElementById('recentVideos');
+        
+        if (data.videos && data.videos.length > 0) {
+            const recent = data.videos.slice(0, 3); // Show last 3 videos
+            recentVideos.innerHTML = recent.map(video => `
+                <div class="video-item">
+                    <div class="video-thumbnail">🎬</div>
+                    <div class="video-info">
+                        <div class="video-title">${video.video_id}</div>
+                        <div class="video-meta">
+                            <a href="${video.playlist_url}" target="_blank">View Playlist</a>
+                        </div>
+                    </div>
+                    <div class="video-actions">
+                        <button class="btn btn-primary btn-sm" onclick="app.playVideo('${video.video_id}')">
+                            ▶️ Play
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            recentVideos.innerHTML = '<div class="text-center text-secondary">No videos uploaded yet</div>';
+        }
+    } catch (error) {
+        console.error('Failed to load recent videos:', error);
+        recentVideos.innerHTML = '<div class="text-center text-error">Failed to load videos</div>';
+    }
+}
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', () => {
+    loadCDNStatus();
+    loadRecentVideos();
+});
+</script>
+{% endblock %}

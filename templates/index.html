@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}TikTok CDN Demo{% endblock %}
+
+{% block content %}
+<div class="text-center mb-8">
+    <h1 class="page-title">🎬 TikTok CDN Demo</h1>
+    <p class="page-subtitle">⚠️ Educational demonstration of CDN exploitation techniques</p>
+    <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+        <strong>Demo Purpose Only:</strong> This tool demonstrates potential security vulnerabilities for educational purposes.
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📤 Upload Videos</h3>
+            <p class="card-description">Convert videos to HLS segments with obfuscated playlists</p>
+        </div>
+        <div class="card-content">
+            <p class="mb-4">Upload videos and convert them to HLS format with CDN fake image injection demonstration.</p>
+            <a href="/upload" class="btn btn-primary w-full">Start Upload</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🎞️ Manage Videos</h3>
+            <p class="card-description">View and play demo videos</p>
+        </div>
+        <div class="card-content">
+            <p class="mb-4">Browse uploaded videos, play HLS streams with obfuscated playlists.</p>
+            <a href="/videos" class="btn btn-primary w-full">View Videos</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">⚙️ Demo Admin</h3>
+            <p class="card-description">CDN demo configuration</p>
+        </div>
+        <div class="card-content">
+            <p class="mb-4">Upload fake images to CDN and configure demo settings.</p>
+            <a href="/admin" class="btn btn-primary w-full">Demo Admin</a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">📊 System Status</h3>
+        <p class="card-description">Current system information</p>
+    </div>
+    <div class="card-content">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <h4 class="font-semibold mb-2">📈 Statistics</h4>
+                <div id="systemStats" class="space-y-2">
+                    <div class="flex justify-between">
+                        <span>Total Videos:</span>
+                        <span id="totalVideos">Loading...</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>CDN Status:</span>
+                        <span id="cdnStatus">Loading...</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Fake Images Cached:</span>
+                        <span id="fakeImagesCount">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <h4 class="font-semibold mb-2">🔧 Features</h4>
+                <ul class="space-y-1 text-sm">
+                    <li>✅ HLS Video Conversion</li>
+                    <li>✅ Playlist Obfuscation</li>
+                    <li>✅ CDN Integration</li>
+                    <li>✅ Drag & Drop Upload</li>
+                    <li>✅ Mobile Responsive</li>
+                    <li>✅ Real-time Progress</li>
+                </ul>
+            </div>
+        </div>
+        <div class="mt-4">
+            <button onclick="loadSystemStatus()" class="btn btn-secondary">🔄 Refresh Status</button>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-6">
+    <div class="card-header">
+        <h3 class="card-title">📖 Demo Technique</h3>
+    </div>
+    <div class="card-content">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="text-center">
+                <div class="text-3xl mb-2">📤</div>
+                <h4 class="font-semibold mb-1">1. Upload</h4>
+                <p class="text-sm text-secondary">Upload video files for HLS conversion</p>
+            </div>
+            <div class="text-center">
+                <div class="text-3xl mb-2">⚙️</div>
+                <h4 class="font-semibold mb-1">2. Convert</h4>
+                <p class="text-sm text-secondary">Videos converted to HLS segments</p>
+            </div>
+            <div class="text-center">
+                <div class="text-3xl mb-2">🎭</div>
+                <h4 class="font-semibold mb-1">3. Inject</h4>
+                <p class="text-sm text-secondary">Fake CDN images injected into playlists</p>
+            </div>
+            <div class="text-center">
+                <div class="text-3xl mb-2">▶️</div>
+                <h4 class="font-semibold mb-1">4. Stream</h4>
+                <p class="text-sm text-secondary">Players ignore fake segments, stream real video</p>
+            </div>
+        </div>
+        <div class="mt-6 p-4 bg-red-50 border border-red-200 rounded">
+            <h4 class="font-semibold text-red-800 mb-2">⚠️ Security Implications</h4>
+            <p class="text-sm text-red-700">This technique demonstrates how CDN image upload endpoints can be exploited to host unauthorized video content through HLS playlist manipulation.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadSystemStatus() {
+    try {
+        // Load video count
+        const videosResponse = await fetch('/videos');
+        const videosData = await videosResponse.json();
+        document.getElementById('totalVideos').textContent = videosData.videos ? videosData.videos.length : '0';
+        
+        // Load CDN status
+        const cdnResponse = await fetch('/cdn-status');
+        const cdnData = await cdnResponse.json();
+        document.getElementById('cdnStatus').textContent = cdnData.cdn_configured ? '✅ Configured' : '⚠️ Not Configured';
+        document.getElementById('fakeImagesCount').textContent = cdnData.fake_images_cached || '0';
+        
+    } catch (error) {
+        console.error('Failed to load system status:', error);
+        document.getElementById('totalVideos').textContent = 'Error';
+        document.getElementById('cdnStatus').textContent = 'Error';
+        document.getElementById('fakeImagesCount').textContent = 'Error';
+    }
+}
+
+// Load status on page load
+document.addEventListener('DOMContentLoaded', loadSystemStatus);
+</script>
+{% endblock %}
