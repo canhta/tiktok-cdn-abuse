@@ -66,6 +66,20 @@ python main.py
 
 **Demo available at:** `http://localhost:8000`
 
+## 🌐 Live Deployment
+
+Deploy to Render.com for live demonstration:
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/canhta/tiktok-cdn-abuse)
+
+**Quick Deploy:**
+1. Click the deploy button above
+2. Connect your GitHub account
+3. Configure environment variables
+4. Access your live demo at `https://your-app.onrender.com`
+
+📖 **Full deployment guide:** See [DEPLOYMENT.md](DEPLOYMENT.md)
+
 ## 🎯 Usage
 
 1. **Upload fake images to CDN** (Admin panel)

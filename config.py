@@ -21,4 +21,3 @@ PORT = int(os.getenv("PORT", "8000"))
 
 # CDN Configuration
 CDN_UPLOAD_URL = os.getenv("CDN_UPLOAD_URL", "https://ads.tiktok.com/api/v2/i18n/material/image/upload/")
-CDN_SESSION_COOKIES = os.getenv("CDN_SESSION_COOKIES", "")

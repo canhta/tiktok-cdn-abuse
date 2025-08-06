@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: tiktok-cdn-abuse
+    runtime: python
+    repo: https://github.com/canhta/tiktok-cdn-abuse.git
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    envVars:
+      - key: CDN_UPLOAD_URL
+        value: https://ads.tiktok.com/api/v2/i18n/material/image/upload/

@@ -10,9 +10,10 @@ from modules.video_service import (
     process_video_to_hls, generate_obfuscated_playlist, 
     save_playlist, get_playlist_content, list_all_videos, delete_video_files
 )
-from modules.cdn_service import fake_image_cache, create_fake_image, upload_fake_image_to_cdn, get_cdn_status
+from modules.cdn_service import create_fake_image, upload_fake_image_to_cdn, get_cdn_status, update_session_cookies
 import asyncio
 import random
+from config import APP_NAME, APP_VERSION
 
 router = APIRouter()
 
@@ -33,7 +34,6 @@ async def upload_fake_images(count: int = Form(10)):
         url = await upload_fake_image_to_cdn(image_data, filename)
         if url:
             uploaded_urls.append(url)
-            fake_image_cache.append(url)
 
         # Rate limiting (5 req/sec as per spec)
         await asyncio.sleep(0.2)
@@ -41,8 +41,7 @@ async def upload_fake_images(count: int = Form(10)):
     return {
         "uploaded": len(uploaded_urls),
         "total_requested": count,
-        "urls": uploaded_urls,
-        "cache_size": len(fake_image_cache)
+        "urls": uploaded_urls[:5]  # Show first 5 URLs as examples
     }
 
 
@@ -83,8 +82,7 @@ async def upload_video(video: UploadFile = File(...), injection_ratio: float = F
             "status": "ready",
             "playlist_url": f"/playlist/{video_id}",
             "segments": len(segments),
-            "injection_ratio": injection_ratio,
-            "fake_images_available": len(fake_image_cache)
+            "injection_ratio": injection_ratio
         }
 
     except Exception as e:
@@ -135,7 +133,60 @@ async def delete_video(video_id: str):
     return {"message": f"Deleted {video_id}", "deleted": deleted}
 
 
+@router.post("/update-cdn-cookies")
+async def update_cdn_cookies(cookies: str = Form(...)):
+    """Update CDN session cookies"""
+    try:
+        result = update_session_cookies(cookies)
+        return {
+            "success": True,
+            "message": "Cookies updated successfully",
+            **result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update cookies: {str(e)}")
+
+
 @router.get("/cdn-status")
 async def cdn_status():
     """Get CDN configuration status"""
     return get_cdn_status()
+
+
+@router.get("/info")
+async def app_info():
+    """Get application information"""
+    return {
+        "app": APP_NAME,
+        "version": APP_VERSION,
+        "status": "running",
+        "features": [
+            "HLS Video Conversion",
+            "CDN Integration",
+            "Playlist Obfuscation",
+            "Real-time Upload",
+            "Mobile Responsive"
+        ],
+        "endpoints": {
+            "upload": "/upload",
+            "videos": "/videos",
+            "cdn_status": "/cdn-status",
+            "health": "/health"
+        }
+    }
+
+
+@router.post("/update-cdn-cookies")
+async def update_cdn_cookies(cookies: str = Form(...)):
+    """Update CDN session cookies dynamically"""
+    from modules.cdn_service import update_session_cookies
+
+    # Update the global CDN cookies
+    result = update_session_cookies(cookies)
+
+    return {
+        "success": True,
+        "message": "CDN cookies updated successfully",
+        "cookies_configured": bool(cookies.strip()),
+        "status": result
+    }

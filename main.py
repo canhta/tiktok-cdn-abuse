@@ -32,6 +32,16 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 os.makedirs("storage/videos", exist_ok=True)
 os.makedirs("storage/playlists", exist_ok=True)
 
+# Health check endpoint for Render
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for deployment monitoring"""
+    return {
+        "status": "healthy",
+        "app": APP_NAME,
+        "version": APP_VERSION
+    }
+
 # Include routers
 app.include_router(api_router)
 app.include_router(web_router)

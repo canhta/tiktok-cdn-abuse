@@ -5,9 +5,8 @@ Video Service - HLS processing and playlist generation
 import os
 import subprocess
 import random
-import asyncio
 from typing import List
-from modules.cdn_service import fake_image_cache, create_fake_image, upload_fake_image_to_cdn
+from modules.cdn_service import create_fake_image, upload_fake_image_to_cdn
 
 
 def process_video_to_hls(input_path: str, video_dir: str) -> List[str]:
@@ -33,7 +32,7 @@ def process_video_to_hls(input_path: str, video_dir: str) -> List[str]:
 
 
 async def generate_obfuscated_playlist(video_id: str, segments: List[str], injection_ratio: float = 0.5) -> str:
-    """Generate M3U8 playlist with fake CDN images"""
+    """Generate M3U8 playlist with fake CDN images as decoys"""
     lines = [
         "#EXTM3U",
         "#EXT-X-VERSION:3",
@@ -41,23 +40,18 @@ async def generate_obfuscated_playlist(video_id: str, segments: List[str], injec
         "#EXT-X-MEDIA-SEQUENCE:0"
     ]
 
-    # Upload fake images if cache is empty
-    if not fake_image_cache:
-        for i in range(5):
-            image_data = create_fake_image(random.choice([1, 2]), random.choice([1, 2]))
-            url = await upload_fake_image_to_cdn(image_data, f"auto_{i}.png")
-            if url:
-                fake_image_cache.append(url)
-            await asyncio.sleep(0.2)
-
     for segment in segments:
-        # Inject fake image before real segment
-        if fake_image_cache and random.random() < injection_ratio:
-            fake_url = random.choice(fake_image_cache)
-            lines.extend([
-                "#EXTINF:0.1,",
-                fake_url
-            ])
+        # Inject fake CDN image URL before real segment (per spec.md concept)
+        if random.random() < injection_ratio:
+            # Generate fake image on-demand and upload to TikTok CDN
+            image_data = create_fake_image(1, 1)  # 1x1 PNG as per spec
+            fake_url = await upload_fake_image_to_cdn(image_data, f"decoy_{random.randint(1000,9999)}.png")
+
+            if fake_url:
+                lines.extend([
+                    "#EXTINF:0.1,",  # Very short duration - players will skip
+                    fake_url
+                ])
 
         # Add real video segment
         lines.extend([

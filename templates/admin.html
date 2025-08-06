@@ -9,25 +9,61 @@
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <!-- CDN Management -->
+    <!-- CDN Configuration -->
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">📤 CDN Management</h3>
-            <p class="card-description">Upload fake images to CDN for playlist obfuscation</p>
+            <h3 class="card-title">🔑 CDN Configuration</h3>
+            <p class="card-description">Configure TikTok CDN session cookies</p>
+        </div>
+        <div class="card-content">
+            <form id="cookieForm">
+                <div class="form-group">
+                    <label for="cdnCookies" class="form-label">TikTok Session Cookies</label>
+                    <textarea
+                        id="cdnCookies"
+                        name="cookies"
+                        rows="3"
+                        class="form-input"
+                        placeholder="session_id=abc123;csrf_token=xyz789;other_cookie=value;"
+                    ></textarea>
+                    <small class="text-secondary">
+                        Get cookies from TikTok Ads Manager → DevTools → Network → Copy cookies
+                    </small>
+                </div>
+
+                <div class="flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-1">
+                        💾 Save Cookies
+                    </button>
+                    <button type="button" id="clearCookies" class="btn btn-secondary">
+                        🗑️ Clear
+                    </button>
+                </div>
+            </form>
+
+            <div id="cookieStatus" class="status mt-3" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- CDN Test -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🧪 CDN Test</h3>
+            <p class="card-description">Test uploading fake images to TikTok CDN</p>
         </div>
         <div class="card-content">
             <form id="cdnForm">
                 <div class="form-group">
-                    <label for="imageCount" class="form-label">Number of Images</label>
-                    <input type="number" id="imageCount" name="count" value="10" min="1" max="50" class="form-input">
-                    <small class="text-secondary">Upload 1x1 transparent PNGs to CDN</small>
+                    <label for="imageCount" class="form-label">Test Images</label>
+                    <input type="number" id="imageCount" name="count" value="5" min="1" max="10" class="form-input">
+                    <small class="text-secondary">Upload 1x1 PNG images to test CDN access</small>
                 </div>
-                
+
                 <button type="submit" class="btn btn-primary w-full">
-                    📤 Upload Fake Images
+                    🧪 Test CDN Upload
                 </button>
             </form>
-            
+
             <div id="cdnStatus" class="status" style="display: none;"></div>
         </div>
     </div>
@@ -45,8 +81,8 @@
                     <span id="cdnConfigured" class="font-semibold">Loading...</span>
                 </div>
                 <div class="flex justify-between">
-                    <span>Fake Images Cached:</span>
-                    <span id="fakeImagesCount" class="font-semibold">Loading...</span>
+                    <span>Cookie Source:</span>
+                    <span id="cookieSource" class="font-semibold">Loading...</span>
                 </div>
                 <div class="flex justify-between">
                     <span>Total Videos:</span>
@@ -79,18 +115,8 @@
                 <h4 class="font-semibold mb-3">CDN Settings</h4>
                 <div class="space-y-3 text-sm">
                     <div>
-                        <strong>Upload URL:</strong><br>
-                        <code class="bg-gray-100 px-2 py-1 rounded text-xs">
-                            https://ads-cdn-upload.domain.com/api/v2/i18n/material/image/upload/
-                        </code>
-                    </div>
-                    <div>
                         <strong>Session Status:</strong><br>
                         <span id="sessionStatus">Checking...</span>
-                    </div>
-                    <div>
-                        <strong>Rate Limit:</strong><br>
-                        5 requests per second
                     </div>
                 </div>
             </div>
@@ -116,41 +142,7 @@
     </div>
 </div>
 
-<!-- System Tools -->
-<div class="card mt-6">
-    <div class="card-header">
-        <h3 class="card-title">🛠️ System Tools</h3>
-        <p class="card-description">Administrative tools and utilities</p>
-    </div>
-    <div class="card-content">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button onclick="cleanupOrphanedFiles()" class="btn btn-warning">
-                🧹 Cleanup Orphaned Files
-            </button>
-            <button onclick="validateCDNImages()" class="btn btn-secondary">
-                ✅ Validate CDN Images
-            </button>
-            <button onclick="exportSystemInfo()" class="btn btn-secondary">
-                📋 Export System Info
-            </button>
-        </div>
-        
-        <div id="toolsStatus" class="status mt-4" style="display: none;"></div>
-    </div>
-</div>
 
-<!-- Recent Activity -->
-<div class="card mt-6">
-    <div class="card-header">
-        <h3 class="card-title">📈 Recent Activity</h3>
-        <p class="card-description">Latest uploads and system events</p>
-    </div>
-    <div class="card-content">
-        <div id="recentActivity">
-            <div class="text-center text-secondary">Loading recent activity...</div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
@@ -162,8 +154,8 @@ async function refreshStatus() {
         const cdnData = await cdnResponse.json();
         
         document.getElementById('cdnConfigured').textContent = cdnData.cdn_configured ? '✅ Yes' : '❌ No';
-        document.getElementById('fakeImagesCount').textContent = cdnData.fake_images_cached || '0';
-        document.getElementById('sessionStatus').textContent = cdnData.session_available ? '✅ Active' : '❌ Not configured';
+        document.getElementById('cookieSource').textContent = cdnData.cookies_source === 'dynamic' ? '🔄 Dynamic' : '⚙️ Config';
+        document.getElementById('sessionStatus').textContent = cdnData.cdn_configured ? '✅ Active' : '❌ Not configured';
         
         // Load video count
         const videosResponse = await fetch('/videos');
@@ -177,81 +169,18 @@ async function refreshStatus() {
         
     } catch (error) {
         console.error('Failed to refresh status:', error);
-        showStatus('toolsStatus', 'error', 'Failed to refresh status');
-    }
-}
-
-async function cleanupOrphanedFiles() {
-    const toolsStatus = document.getElementById('toolsStatus');
-    showStatus(toolsStatus, 'info', 'Cleaning up orphaned files...');
-    
-    try {
-        // This would call a cleanup endpoint if implemented
-        showStatus(toolsStatus, 'success', '✅ Cleanup completed (feature not yet implemented)');
-    } catch (error) {
-        showStatus(toolsStatus, 'error', `❌ Cleanup failed: ${error.message}`);
-    }
-}
-
-async function validateCDNImages() {
-    const toolsStatus = document.getElementById('toolsStatus');
-    showStatus(toolsStatus, 'info', 'Validating CDN images...');
-    
-    try {
-        const response = await fetch('/cdn-status');
-        const data = await response.json();
-        
-        if (data.fake_images_cached > 0) {
-            showStatus(toolsStatus, 'success', `✅ Found ${data.fake_images_cached} cached images`);
-        } else {
-            showStatus(toolsStatus, 'warning', '⚠️ No cached images found');
+        const statusElement = document.getElementById('cookieStatus');
+        if (statusElement) {
+            showStatus(statusElement, 'error', 'Failed to refresh status');
         }
-    } catch (error) {
-        showStatus(toolsStatus, 'error', `❌ Validation failed: ${error.message}`);
     }
 }
 
-async function exportSystemInfo() {
-    const toolsStatus = document.getElementById('toolsStatus');
-    
-    try {
-        const [cdnResponse, videosResponse] = await Promise.all([
-            fetch('/cdn-status'),
-            fetch('/videos')
-        ]);
-        
-        const cdnData = await cdnResponse.json();
-        const videosData = await videosResponse.json();
-        
-        const systemInfo = {
-            timestamp: new Date().toISOString(),
-            cdn: cdnData,
-            videos: {
-                count: videosData.videos ? videosData.videos.length : 0,
-                list: videosData.videos || []
-            },
-            system: {
-                version: '1.0.0',
-                features: ['HLS Conversion', 'Playlist Obfuscation', 'CDN Integration']
-            }
-        };
-        
-        const blob = new Blob([JSON.stringify(systemInfo, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `system-info-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        showStatus(toolsStatus, 'success', '✅ System info exported');
-    } catch (error) {
-        showStatus(toolsStatus, 'error', `❌ Export failed: ${error.message}`);
-    }
-}
+
+
+
+
+
 
 async function loadRecentActivity() {
     try {
@@ -281,23 +210,63 @@ async function loadRecentActivity() {
     }
 }
 
-function showStatus(element, type, message) {
-    element.className = `status status-${type}`;
-    element.textContent = message;
-    element.style.display = 'block';
-    
-    // Auto-hide after 5 seconds for non-error messages
-    if (type !== 'error') {
-        setTimeout(() => {
-            element.style.display = 'none';
-        }, 5000);
-    }
-}
+// showStatus function is now handled by shared.js
 
-// Load data on page load
+// Cookie management is now handled by shared.js
+
+// Clear cookies button
+document.getElementById('clearCookies').addEventListener('click', () => {
+    document.getElementById('cdnCookies').value = '';
+    localStorage.removeItem('tiktok_cdn_cookies');
+
+    // Update server
+    const formData = new FormData();
+    formData.append('cookies', '');
+    fetch('/update-cdn-cookies', { method: 'POST', body: formData });
+
+    const cookieStatus = document.getElementById('cookieStatus');
+    showStatus(cookieStatus, 'success', '✅ Cookies cleared');
+
+    setTimeout(refreshStatus, 1000);
+});
+
+// loadSavedCookies function is now handled by shared.js
+
+// CDN Form Handler
+document.getElementById('cdnForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const cdnStatus = document.getElementById('cdnStatus');
+    const count = document.getElementById('imageCount').value;
+
+    showStatus(cdnStatus, 'info', 'Uploading fake images to CDN...');
+
+    try {
+        const formData = new FormData();
+        formData.append('count', count);
+
+        const response = await fetch('/upload-fake-images', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.uploaded > 0) {
+            showStatus(cdnStatus, 'success', `✅ CDN test successful: ${result.uploaded}/${result.total_requested} images uploaded`);
+            setTimeout(refreshStatus, 1000);
+        } else {
+            showStatus(cdnStatus, 'error', `❌ CDN test failed: No images uploaded`);
+        }
+    } catch (error) {
+        showStatus(cdnStatus, 'error', `❌ Error: ${error.message}`);
+    }
+});
+
+// Page initialization - add admin-specific functionality
 document.addEventListener('DOMContentLoaded', () => {
-    refreshStatus();
-    loadRecentActivity();
+    // Shared initialization is handled by shared.js
+    refreshStatus(); // Admin-specific status refresh
 });
 </script>
 {% endblock %}

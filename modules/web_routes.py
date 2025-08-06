@@ -3,7 +3,7 @@ Web Routes - HTML pages and templates
 """
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 # Setup templates
@@ -18,25 +18,13 @@ async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
-@router.get("/upload", response_class=HTMLResponse)
-async def upload_page(request: Request):
-    """Upload page"""
-    return templates.TemplateResponse("upload.html", {"request": request})
-
-
-@router.get("/videos", response_class=HTMLResponse)
-async def videos_page(request: Request):
-    """Videos listing page"""
-    return templates.TemplateResponse("videos.html", {"request": request})
-
-
-@router.get("/player/{video_id}", response_class=HTMLResponse)
-async def player_page(request: Request, video_id: str):
-    """Video player page"""
-    return templates.TemplateResponse("player.html", {"request": request, "video_id": video_id})
-
-
 @router.get("/admin", response_class=HTMLResponse)
 async def admin_panel(request: Request):
-    """Admin panel"""
+    """Admin panel page"""
     return templates.TemplateResponse("admin.html", {"request": request})
+
+
+@router.get("/player/{video_id}")
+async def player_redirect(video_id: str):
+    """Redirect to main page"""
+    return RedirectResponse(url="/", status_code=302)

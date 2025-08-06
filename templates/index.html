@@ -9,39 +9,96 @@
     <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
         <strong>Demo Purpose Only:</strong> This tool demonstrates potential security vulnerabilities for educational purposes.
     </div>
+
+    <!-- Clear Cache Button -->
+    <div class="mb-4">
+        <button id="clearCacheBtn" class="btn btn-secondary">
+            🗑️ Clear Browser Cache
+        </button>
+    </div>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">📤 Upload Videos</h3>
-            <p class="card-description">Convert videos to HLS segments with obfuscated playlists</p>
-        </div>
-        <div class="card-content">
-            <p class="mb-4">Upload videos and convert them to HLS format with CDN fake image injection demonstration.</p>
-            <a href="/upload" class="btn btn-primary w-full">Start Upload</a>
+<!-- CDN Configuration -->
+<div class="card mb-6">
+    <div class="card-header">
+        <h3 class="card-title">� CDN Configuration</h3>
+        <p class="card-description">Configure TikTok session cookies</p>
+    </div>
+    <div class="card-content">
+        <form id="cookieForm">
+            <div class="form-group">
+                <label for="cdnCookies" class="form-label">TikTok Session Cookies</label>
+                <textarea
+                    id="cdnCookies"
+                    name="cookies"
+                    rows="2"
+                    class="form-input"
+                    placeholder="session_id=abc123;csrf_token=xyz789;"
+                ></textarea>
+                <small class="text-secondary">
+                    Get from TikTok Ads Manager → DevTools → Network → Copy cookies
+                </small>
+            </div>
+
+            <div class="flex gap-2">
+                <button type="submit" class="btn btn-primary flex-1">💾 Save Cookies</button>
+                <button type="button" id="testCdn" class="btn btn-secondary">🧪 Test CDN</button>
+            </div>
+        </form>
+
+        <div id="cookieStatus" class="status mt-3" style="display: none;"></div>
+    </div>
+</div>
+
+<!-- Video Upload -->
+<div class="card mb-6">
+    <div class="card-header">
+        <h3 class="card-title">� Upload Video</h3>
+        <p class="card-description">Upload and convert to HLS with CDN injection</p>
+    </div>
+    <div class="card-content">
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="videoFile" class="form-label">Video File</label>
+                <input type="file" id="videoFile" name="video" accept="video/*" class="form-input" required>
+                <small class="text-secondary">Supported: MP4, AVI, MOV, MKV, WebM</small>
+            </div>
+
+            <div class="form-group">
+                <label for="injectionRatio" class="form-label">CDN Injection Ratio</label>
+                <input type="range" id="injectionRatio" name="injection_ratio" min="0" max="1" step="0.1" value="0.5" class="form-input">
+                <small class="text-secondary">Ratio of fake CDN images in playlist: <span id="ratioValue">50%</span></small>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-full">🚀 Upload & Convert</button>
+        </form>
+
+        <div id="uploadStatus" class="status mt-3" style="display: none;"></div>
+        <div id="uploadProgress" class="progress mt-3" style="display: none;">
+            <div class="progress-bar" style="width: 0%"></div>
         </div>
     </div>
+</div>
 
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">🎞️ Manage Videos</h3>
-            <p class="card-description">View and play demo videos</p>
-        </div>
-        <div class="card-content">
-            <p class="mb-4">Browse uploaded videos, play HLS streams with obfuscated playlists.</p>
-            <a href="/videos" class="btn btn-primary w-full">View Videos</a>
-        </div>
+<!-- Video List & Player -->
+<div class="card mb-6">
+    <div class="card-header">
+        <h3 class="card-title">🎞️ Videos</h3>
+        <p class="card-description">Uploaded videos with obfuscated playlists</p>
     </div>
-
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">⚙️ Demo Admin</h3>
-            <p class="card-description">CDN demo configuration</p>
+    <div class="card-content">
+        <div id="videoList">
+            <div class="text-center text-secondary">Loading videos...</div>
         </div>
-        <div class="card-content">
-            <p class="mb-4">Upload fake images to CDN and configure demo settings.</p>
-            <a href="/admin" class="btn btn-primary w-full">Demo Admin</a>
+
+        <!-- Video Player -->
+        <div id="videoPlayer" style="display: none;" class="mt-6">
+            <h4 class="font-semibold mb-3">Video Player</h4>
+            <video id="hlsPlayer" controls class="w-full max-w-2xl mx-auto bg-black rounded"></video>
+            <div class="mt-3 text-sm">
+                <strong>Playlist URL:</strong> <span id="playlistUrl" class="font-mono text-xs"></span>
+                <button id="copyPlaylist" class="btn btn-secondary btn-sm ml-2">📋 Copy</button>
+            </div>
         </div>
     </div>
 </div>
@@ -64,23 +121,9 @@
                         <span>CDN Status:</span>
                         <span id="cdnStatus">Loading...</span>
                     </div>
-                    <div class="flex justify-between">
-                        <span>Fake Images Cached:</span>
-                        <span id="fakeImagesCount">Loading...</span>
-                    </div>
                 </div>
             </div>
-            <div>
-                <h4 class="font-semibold mb-2">🔧 Features</h4>
-                <ul class="space-y-1 text-sm">
-                    <li>✅ HLS Video Conversion</li>
-                    <li>✅ Playlist Obfuscation</li>
-                    <li>✅ CDN Integration</li>
-                    <li>✅ Drag & Drop Upload</li>
-                    <li>✅ Mobile Responsive</li>
-                    <li>✅ Real-time Progress</li>
-                </ul>
-            </div>
+
         </div>
         <div class="mt-4">
             <button onclick="loadSystemStatus()" class="btn btn-secondary">🔄 Refresh Status</button>
@@ -88,65 +131,155 @@
     </div>
 </div>
 
-<div class="card mt-6">
-    <div class="card-header">
-        <h3 class="card-title">📖 Demo Technique</h3>
-    </div>
-    <div class="card-content">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="text-center">
-                <div class="text-3xl mb-2">📤</div>
-                <h4 class="font-semibold mb-1">1. Upload</h4>
-                <p class="text-sm text-secondary">Upload video files for HLS conversion</p>
-            </div>
-            <div class="text-center">
-                <div class="text-3xl mb-2">⚙️</div>
-                <h4 class="font-semibold mb-1">2. Convert</h4>
-                <p class="text-sm text-secondary">Videos converted to HLS segments</p>
-            </div>
-            <div class="text-center">
-                <div class="text-3xl mb-2">🎭</div>
-                <h4 class="font-semibold mb-1">3. Inject</h4>
-                <p class="text-sm text-secondary">Fake CDN images injected into playlists</p>
-            </div>
-            <div class="text-center">
-                <div class="text-3xl mb-2">▶️</div>
-                <h4 class="font-semibold mb-1">4. Stream</h4>
-                <p class="text-sm text-secondary">Players ignore fake segments, stream real video</p>
-            </div>
-        </div>
-        <div class="mt-6 p-4 bg-red-50 border border-red-200 rounded">
-            <h4 class="font-semibold text-red-800 mb-2">⚠️ Security Implications</h4>
-            <p class="text-sm text-red-700">This technique demonstrates how CDN image upload endpoints can be exploited to host unauthorized video content through HLS playlist manipulation.</p>
-        </div>
-    </div>
-</div>
+
 {% endblock %}
 
 {% block scripts %}
+<script src="/static/libs/hls.min.js"></script>
 <script>
-async function loadSystemStatus() {
+// Browser cache management
+function clearBrowserCache() {
+    localStorage.clear();
+    sessionStorage.clear();
+    if ('caches' in window) {
+        caches.keys().then(names => {
+            names.forEach(name => caches.delete(name));
+        });
+    }
+    showStatus(document.getElementById('cookieStatus'), 'success', '✅ Browser cache cleared');
+    location.reload();
+}
+
+// Cookie form is now handled by shared.js
+
+// CDN test
+document.getElementById('testCdn').addEventListener('click', async () => {
+    const status = document.getElementById('cookieStatus');
+    showStatus(status, 'info', 'Testing CDN access...');
+
     try {
-        // Load video count
-        const videosResponse = await fetch('/videos');
-        const videosData = await videosResponse.json();
-        document.getElementById('totalVideos').textContent = videosData.videos ? videosData.videos.length : '0';
-        
-        // Load CDN status
-        const cdnResponse = await fetch('/cdn-status');
-        const cdnData = await cdnResponse.json();
-        document.getElementById('cdnStatus').textContent = cdnData.cdn_configured ? '✅ Configured' : '⚠️ Not Configured';
-        document.getElementById('fakeImagesCount').textContent = cdnData.fake_images_cached || '0';
-        
+        const formData = new FormData();
+        formData.append('count', '1');
+
+        const response = await fetch('/upload-fake-images', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.uploaded > 0) {
+            showStatus(status, 'success', '✅ CDN test successful');
+        } else {
+            showStatus(status, 'error', '❌ CDN test failed - check cookies');
+        }
     } catch (error) {
-        console.error('Failed to load system status:', error);
-        document.getElementById('totalVideos').textContent = 'Error';
-        document.getElementById('cdnStatus').textContent = 'Error';
-        document.getElementById('fakeImagesCount').textContent = 'Error';
+        showStatus(status, 'error', `❌ CDN test error: ${error.message}`);
+    }
+});
+
+// Upload form handler
+document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData();
+    const videoFile = document.getElementById('videoFile').files[0];
+    const injectionRatio = document.getElementById('injectionRatio').value;
+
+    if (!videoFile) {
+        showStatus(document.getElementById('uploadStatus'), 'error', '❌ Please select a video file');
+        return;
+    }
+
+    formData.append('video', videoFile);
+    formData.append('injection_ratio', injectionRatio);
+
+    const status = document.getElementById('uploadStatus');
+    const progress = document.getElementById('uploadProgress');
+
+    showStatus(status, 'info', 'Uploading and converting video...');
+    progress.style.display = 'block';
+
+    try {
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.video_id) {
+            showStatus(status, 'success', `✅ Video uploaded: ${result.video_id}`);
+
+            // Cache video info
+            const videos = JSON.parse(localStorage.getItem('uploaded_videos') || '[]');
+            videos.unshift({
+                video_id: result.video_id,
+                playlist_url: result.playlist_url,
+                segments: result.segments,
+                injection_ratio: result.injection_ratio,
+                timestamp: new Date().toISOString()
+            });
+            localStorage.setItem('uploaded_videos', JSON.stringify(videos.slice(0, 10))); // Keep last 10
+
+            loadVideoList();
+        } else {
+            showStatus(status, 'error', '❌ Upload failed');
+        }
+    } catch (error) {
+        showStatus(status, 'error', `❌ Upload error: ${error.message}`);
+    } finally {
+        progress.style.display = 'none';
+    }
+});
+
+// Injection ratio slider
+document.getElementById('injectionRatio').addEventListener('input', (e) => {
+    document.getElementById('ratioValue').textContent = Math.round(e.target.value * 100) + '%';
+});
+
+// Clear cache button
+document.getElementById('clearCacheBtn').addEventListener('click', clearBrowserCache);
+
+// Video list loading is now handled by shared.js
+
+// Play video
+async function playVideo(videoId) {
+    try {
+        const playlistUrl = `/playlist/${videoId}`;
+        const player = document.getElementById('hlsPlayer');
+        const playerDiv = document.getElementById('videoPlayer');
+
+        if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(playlistUrl);
+            hls.attachMedia(player);
+        } else if (player.canPlayType('application/vnd.apple.mpegurl')) {
+            player.src = playlistUrl;
+        }
+
+        document.getElementById('playlistUrl').textContent = playlistUrl;
+        playerDiv.style.display = 'block';
+
+        // Scroll to player
+        playerDiv.scrollIntoView({ behavior: 'smooth' });
+
+    } catch (error) {
+        console.error('Failed to play video:', error);
     }
 }
 
-// Load status on page load
-document.addEventListener('DOMContentLoaded', loadSystemStatus);
+// Delete video function is now handled by shared.js
+
+// Copy playlist URL
+document.getElementById('copyPlaylist').addEventListener('click', () => {
+    const url = document.getElementById('playlistUrl').textContent;
+    navigator.clipboard.writeText(url);
+    showStatus(document.getElementById('cookieStatus'), 'success', '📋 Playlist URL copied');
+});
+
+// Status display and system status functions are now handled by shared.js
+
+// Initialization is now handled by shared.js
 </script>
 {% endblock %}

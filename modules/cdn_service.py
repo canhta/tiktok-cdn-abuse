@@ -9,20 +9,38 @@ import aiohttp
 from typing import Optional
 from PIL import Image
 import io
-from config import CDN_UPLOAD_URL, CDN_SESSION_COOKIES
+from config import CDN_UPLOAD_URL
 
-fake_image_cache = []
+# Global variable to store dynamic CDN cookies
+_dynamic_cdn_cookies = ""
+
+
+def update_session_cookies(cookies: str) -> dict:
+    """Update CDN session cookies dynamically"""
+    global _dynamic_cdn_cookies
+    _dynamic_cdn_cookies = cookies.strip()
+
+    return {
+        "cookies_set": bool(_dynamic_cdn_cookies),
+        "cookies_length": len(_dynamic_cdn_cookies) if _dynamic_cdn_cookies else 0
+    }
+
+
+def get_current_cookies() -> str:
+    """Get current CDN cookies"""
+    return _dynamic_cdn_cookies
 
 
 async def upload_fake_image_to_cdn(image_data: bytes, filename: str) -> Optional[str]:
     """Upload fake image to CDN"""
-    if not CDN_SESSION_COOKIES:
+    current_cookies = get_current_cookies()
+    if not current_cookies:
         return None
 
     try:
         async with aiohttp.ClientSession() as session:
             cookies = {}
-            for cookie in CDN_SESSION_COOKIES.split(';'):
+            for cookie in current_cookies.split(';'):
                 if '=' in cookie:
                     key, value = cookie.strip().split('=', 1)
                     cookies[key] = value
@@ -63,7 +81,9 @@ def create_fake_image(width: int = 1, height: int = 1) -> bytes:
 
 def get_cdn_status():
     """Get CDN status"""
+    current_cookies = get_current_cookies()
     return {
-        "cdn_configured": bool(CDN_SESSION_COOKIES),
-        "fake_images_cached": len(fake_image_cache)
+        "cdn_configured": bool(current_cookies),
+        "cookies_source": "dynamic" if _dynamic_cdn_cookies else "config",
+        "cookies_length": len(current_cookies) if current_cookies else 0
     }

@@ -15,9 +15,8 @@
                 <a href="/" class="logo">🎬 Video Hosting CDN</a>
                 <nav class="nav">
                     <a href="/" class="nav-link {% if request.url.path == '/' %}active{% endif %}">Home</a>
-                    <a href="/upload" class="nav-link {% if request.url.path == '/upload' %}active{% endif %}">Upload</a>
-                    <a href="/videos" class="nav-link {% if request.url.path == '/videos' %}active{% endif %}">Videos</a>
                     <a href="/admin" class="nav-link {% if request.url.path == '/admin' %}active{% endif %}">Admin</a>
+                    <a href="/docs" class="nav-link" target="_blank">API Docs</a>
                 </nav>
             </div>
         </div>
@@ -29,7 +28,7 @@
         </div>
     </main>
 
-    <script src="/static/js/main.js"></script>
+    <script src="/static/js/shared.js"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>
